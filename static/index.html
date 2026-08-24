@@ -1,1 +1,173 @@
-
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>مراقب USDT/JOD</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+:root{--bg:#080d0b;--surface:#0f1512;--card:#131a16;--border:#1c2b24;--green:#00e676;--red:#ff5252;--gold:#ffd600;--text:#dff5e8;--muted:#4a6b5a}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:Tajawal,sans-serif;min-height:100vh}
+.topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:12px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.logo{display:flex;align-items:center;gap:8px;font-size:1rem;font-weight:700}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--green);box-shadow:0 0 10px var(--green);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+.badge{background:rgba(0,230,118,0.1);border:1px solid var(--green);color:var(--green);padding:3px 10px;border-radius:20px;font-size:0.65rem;font-weight:700}
+main{padding:16px;max-width:1000px;margin:0 auto}
+.hero{background:rgba(255,214,0,0.07);border:1px solid rgba(255,214,0,0.2);border-radius:14px;padding:20px;margin-bottom:14px;display:grid;grid-template-columns:1fr auto;gap:16px;align-items:center}
+@media(max-width:500px){.hero{grid-template-columns:1fr}}
+.hero-label{font-size:0.7rem;color:var(--gold);font-weight:700;letter-spacing:2px;margin-bottom:6px}
+.hero-num{font-family:monospace;font-size:3rem;font-weight:600;color:var(--gold);line-height:1}
+.hero-sub{font-size:0.75rem;color:var(--muted);margin-top:4px}
+.profit-box{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:14px 18px;text-align:center;min-width:150px}
+.profit-box .lbl{font-size:0.68rem;color:var(--muted);margin-bottom:4px}
+.profit-box .val{font-family:monospace;font-size:1.5rem;color:var(--green);font-weight:600}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
+@media(max-width:400px){.stats{grid-template-columns:1fr 1fr}}
+.stat{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 14px}
+.stat .lbl{font-size:0.68rem;color:var(--muted);margin-bottom:4px}
+.stat .val{font-family:monospace;font-size:1.2rem;font-weight:600}
+.g{color:var(--green)}.r{color:var(--red)}.gold{color:var(--gold)}
+.chart-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:14px}
+.chart-title{font-size:0.72rem;color:var(--muted);font-weight:700;letter-spacing:1px;margin-bottom:12px}
+.chart-wrap{height:110px}
+.tables{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}
+@media(max-width:580px){.tables{grid-template-columns:1fr}}
+.tcard{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.thead{padding:10px 14px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)}
+.buy-h{background:rgba(0,230,118,0.05)}.sell-h{background:rgba(255,82,82,0.05)}
+.ttitle{font-size:0.76rem;font-weight:700}
+.tbadge{font-family:monospace;font-size:0.62rem;padding:2px 7px;border-radius:8px;background:var(--border);color:var(--muted)}
+.row{display:grid;grid-template-columns:16px 1fr auto;gap:8px;align-items:center;padding:8px 14px;border-bottom:1px solid var(--border)}
+.row:last-child{border-bottom:none}
+.rank{font-family:monospace;font-size:0.6rem;color:var(--muted)}
+.mname{font-size:0.78rem;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mmeta{font-family:monospace;font-size:0.6rem;color:var(--muted);margin-top:1px}
+.price{font-family:monospace;font-size:0.95rem;font-weight:600;text-align:left}
+.limit{font-family:monospace;font-size:0.58rem;color:var(--muted);text-align:left;margin-top:1px}
+.btag{font-size:0.55rem;font-weight:700;padding:1px 4px;border-radius:3px;margin-left:3px}
+.btag-b{background:rgba(0,230,118,0.1);color:var(--green);border:1px solid rgba(0,230,118,0.3)}
+.btag-s{background:rgba(255,82,82,0.1);color:var(--red);border:1px solid rgba(255,82,82,0.3)}
+.alert-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:14px}
+.alert-title{font-size:0.76rem;font-weight:700;color:var(--gold);margin-bottom:12px}
+.arow{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end}
+.ag{display:flex;flex-direction:column;gap:3px}
+.ag label{font-size:0.65rem;color:var(--muted)}
+.ainput{background:var(--bg);border:1px solid var(--border);border-radius:7px;padding:7px 10px;color:var(--text);font-family:monospace;font-size:0.82rem;width:130px;outline:none}
+.ainput:focus{border-color:var(--gold)}
+.abtn{background:var(--gold);color:#000;border:none;border-radius:7px;padding:8px 16px;font-weight:700;font-size:0.82rem;cursor:pointer}
+.astatus{font-size:0.7rem;color:var(--muted);margin-top:8px;font-family:monospace}
+.notif{background:rgba(0,230,118,0.08);border:1px solid var(--green);border-radius:8px;padding:8px 14px;font-size:0.76rem;color:var(--green);margin-bottom:10px;display:none;font-family:monospace}
+.err{background:rgba(255,82,82,0.08);border:1px solid var(--red);border-radius:8px;padding:8px 14px;font-size:0.76rem;color:var(--red);margin-bottom:10px;display:none}
+.loading{padding:20px;text-align:center;color:var(--muted);font-family:monospace;font-size:0.75rem;animation:pulse 1.2s infinite}
+footer{text-align:center;padding:16px;font-family:monospace;font-size:0.62rem;color:var(--muted);border-top:1px solid var(--border)}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="logo"><div class="dot"></div>مراقب <span style="color:var(--green);margin:0 4px">USDT</span> / دينار أردني</div>
+  <div style="display:flex;align-items:center;gap:10px;font-family:monospace;font-size:0.7rem;color:var(--muted)">
+    <span>⏱ <span id="cd">60</span>ث</span>
+    <span id="lt">--:--</span>
+    <span class="badge">LIVE</span>
+  </div>
+</div>
+<main>
+  <div class="notif" id="notif"></div>
+  <div class="err" id="err"></div>
+  <div class="hero">
+    <div>
+      <div class="hero-label">⚡ هامش السوق اللحظي</div>
+      <div class="hero-num" id="spread">--</div>
+      <div class="hero-sub">فرق سعر الشراء والبيع · JOD / USDT</div>
+    </div>
+    <div class="profit-box">
+      <div class="lbl">ربح تقديري على 1,000 USDT</div>
+      <div class="val" id="profit">--</div>
+      <div style="font-size:0.62rem;color:var(--muted);margin-top:2px">JOD</div>
+    </div>
+  </div>
+  <div class="stats">
+    <div class="stat"><div class="lbl">أفضل شراء</div><div class="val g" id="bb">--</div><div style="font-size:0.62rem;color:var(--muted)">JOD/USDT</div></div>
+    <div class="stat"><div class="lbl">أفضل بيع</div><div class="val r" id="bs">--</div><div style="font-size:0.62rem;color:var(--muted)">JOD/USDT</div></div>
+    <div class="stat"><div class="lbl">العروض النشطة</div><div class="val gold" id="tot">--</div><div style="font-size:0.62rem;color:var(--muted)">شراء + بيع</div></div>
+  </div>
+  <div class="chart-card">
+    <div class="chart-title">📈 تاريخ الهامش — آخر ساعة</div>
+    <div class="chart-wrap"><canvas id="ch"></canvas></div>
+  </div>
+  <div class="tables">
+    <div class="tcard">
+      <div class="thead buy-h"><span class="ttitle g">🟢 عروض الشراء</span><span class="tbadge" id="bc">--</span></div>
+      <div id="bl"><div class="loading">جاري التحميل...</div></div>
+    </div>
+    <div class="tcard">
+      <div class="thead sell-h"><span class="ttitle r">🔴 عروض البيع</span><span class="tbadge" id="sc">--</span></div>
+      <div id="sl"><div class="loading">جاري التحميل...</div></div>
+    </div>
+  </div>
+  <div class="alert-card">
+    <div class="alert-title">🔔 تنبيه السعر</div>
+    <div class="arow">
+      <div class="ag"><label>تنبيه شراء أقل من</label><input type="number" class="ainput" id="ab" placeholder="0.7050" step="0.0001"></div>
+      <div class="ag"><label>تنبيه بيع أعلى من</label><input type="number" class="ainput" id="as" placeholder="0.7100" step="0.0001"></div>
+      <button class="abtn" onclick="setAlert()">تفعيل</button>
+    </div>
+    <div class="astatus" id="ast">لم يُعيَّن تنبيه بعد</div>
+  </div>
+</main>
+<footer>Binance P2P · JOD/USDT · تحديث كل 60 ثانية</footer>
+<script>
+let aB=null,aS=null,chart=null,cd=60;
+const ctx=document.getElementById('ch').getContext('2d');
+chart=new Chart(ctx,{type:'line',data:{labels:[],datasets:[{label:'هامش',data:[],borderColor:'#ffd600',backgroundColor:'rgba(255,214,0,0.06)',borderWidth:2,pointRadius:2,fill:true,tension:0.4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#4a6b5a',font:{size:8}},grid:{color:'#1c2b24'}},y:{ticks:{color:'#4a6b5a',font:{size:8}},grid:{color:'#1c2b24'}}}}});
+function f(n,d=4){return parseFloat(n).toFixed(d)}
+function fl(min,max){const g=n=>n>=1000?(n/1000).toFixed(1)+'K':Math.round(n);return g(min)+'–'+g(max)+' JOD'}
+function ft(ts){return new Date(ts).toLocaleTimeString('ar-JO',{hour12:false,hour:'2-digit',minute:'2-digit'})}
+function render(id,ads,type){
+  const el=document.getElementById(id);
+  if(!ads||!ads.length){el.innerHTML='<div class="loading">لا توجد عروض</div>';return}
+  el.innerHTML=ads.map((a,i)=>{
+    const pc=type==='buy'?'g':'r',tc=type==='buy'?'btag-b':'btag-s',tt=type==='buy'?'الأعلى':'الأدنى';
+    const fr=a.monthFinishRate?(a.monthFinishRate*100).toFixed(0)+'%':'--';
+    return `<div class="row"><span class="rank">${i+1}</span><div><div class="mname">${i===0?`<span class="btag ${tc}">${tt}</span>`:''} ${a.merchant}</div><div class="mmeta">أوامر: ${a.monthOrderCount||'--'} · إتمام: ${fr}</div></div><div><div class="price ${pc}">${f(a.price)}</div><div class="limit">${fl(a.minAmount,a.maxAmount)}</div></div></div>`;
+  }).join('');
+}
+async function load(){
+  try{
+    document.getElementById('err').style.display='none';
+    const res=await fetch('/api/prices');
+    if(!res.ok)throw new Error('خطأ '+res.status);
+    const d=await res.json();
+    const sp=parseFloat(d.spread),pr=(sp*1000).toFixed(3);
+    document.getElementById('spread').textContent=f(sp);
+    document.getElementById('profit').textContent=(pr>0?'+':'')+pr;
+    document.getElementById('bb').textContent=f(d.bestBuy);
+    document.getElementById('bs').textContent=f(d.bestSell);
+    document.getElementById('tot').textContent=d.buy.length+d.sell.length;
+    document.getElementById('bc').textContent=d.buy.length+' عرض';
+    document.getElementById('sc').textContent=d.sell.length+' عرض';
+    render('bl',d.buy,'buy');render('sl',d.sell,'sell');
+    if(d.history&&d.history.length){chart.data.labels=d.history.map(h=>ft(h.time));chart.data.datasets[0].data=d.history.map(h=>h.spread);chart.update('none')}
+    document.getElementById('lt').textContent=new Date().toLocaleTimeString('ar-JO',{hour12:false});
+    checkAlerts(d.bestBuy,d.bestSell);cd=60;
+  }catch(e){const el=document.getElementById('err');el.style.display='block';el.textContent='⚠️ '+e.message}
+}
+function checkAlerts(buy,sell){
+  const bar=document.getElementById('notif');
+  if(aB&&buy<aB){bar.style.display='block';bar.textContent='🔔 سعر الشراء '+f(buy)+' أقل من حدك '+aB;if('Notification'in window&&Notification.permission==='granted')new Notification('تنبيه USDT',{body:bar.textContent})}
+  else if(aS&&sell>aS){bar.style.display='block';bar.textContent='🔔 سعر البيع '+f(sell)+' أعلى من حدك '+aS;if('Notification'in window&&Notification.permission==='granted')new Notification('تنبيه USDT',{body:bar.textContent})}
+  else bar.style.display='none';
+}
+function setAlert(){
+  const b=parseFloat(document.getElementById('ab').value),s=parseFloat(document.getElementById('as').value);
+  if(!isNaN(b))aB=b;if(!isNaN(s))aS=s;
+  let m=[];if(aB)m.push('شراء < '+aB);if(aS)m.push('بيع > '+aS);
+  document.getElementById('ast').textContent=m.length?'✅ '+m.join(' | '):'لا يوجد تنبيه';
+}
+if('Notification'in window&&Notification.permission==='default')Notification.requestPermission();
+load();setInterval(()=>{load();cd=60},60000);setInterval(()=>{cd=Math.max(0,cd-1);document.getElementById('cd').textContent=cd},1000);
+</script>
+</body>
+</html>
