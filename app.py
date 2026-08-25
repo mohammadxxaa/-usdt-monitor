@@ -18,84 +18,47 @@ cache = {
     'history': []
 }
 
-def fetch_p2p(trade_type, rows=10):
-    url = 'https://p2p.binance.com/bapi/c2c/v2/friendly/c2c/adv/search'
-    headers = {
-        'Content-Type': 'application/json',
-        'User-Agent': 'Mozilla/5.0 (Linux; Android 12; SM-G991B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36',
-        'Accept': 'application/json',
-        'Accept-Language': 'ar-JO,ar;q=0.9,en;q=0.8',
-        'Origin': 'https://p2p.binance.com',
-        'Referer': 'https://p2p.binance.com/en/trade/all-payments/USDT?fiat=JOD',
-    }
-    payload = {
-        "fiat": "JOD",
-        "page": 1,
-        "rows": rows,
-        "tradeType": trade_type,
-        "asset": "USDT",
-        "countries": [],
-        "proMerchantAds": False,
-        "shieldMerchantAds": False,
-        "filterType": "all",
-        "periods": [],
-        "additionalKycVerifyFilter": 0,
-        "publisherType": None,
-        "payTypes": [],
-        "classifies": ["mass", "profession"]
-    }
+def fetch_price():
     try:
-        res = requests.post(url, json=payload, headers=headers, timeout=15)
+        # Binance public API - no blocking
+        url = 'https://api.binance.com/api/v3/ticker/bookTicker?symbol=USDTJOD'
+        res = requests.get(url, timeout=10)
         if res.status_code == 200:
-            return res.json().get('data', [])
+            data = res.json()
+            return float(data['bidPrice']), float(data['askPrice'])
     except Exception as e:
-        print(f"Error fetching {trade_type}: {e}")
-    return []
+        print(f"Error: {e}")
+    return None, None
 
 def update_cache():
     while True:
         try:
-            buy_ads = fetch_p2p('BUY', 10)
-            sell_ads = fetch_p2p('SELL', 10)
-            cache['buy'] = buy_ads
-            cache['sell'] = sell_ads
-            cache['last_update'] = time.time()
-            if buy_ads and sell_ads:
-                best_buy = float(buy_ads[0]['adv']['price'])
-                best_sell = float(sell_ads[0]['adv']['price'])
-                spread = round(best_buy - best_sell, 4)
-                cache['best_buy'] = best_buy
-                cache['best_sell'] = best_sell
-                cache['spread'] = spread
+            bid, ask = fetch_price()
+            if bid and ask:
+                cache['best_buy'] = bid
+                cache['best_sell'] = ask
+                cache['spread'] = round(bid - ask, 4)
+                cache['last_update'] = time.time()
                 cache['history'].append({
                     'time': int(time.time() * 1000),
-                    'spread': spread,
-                    'buy': best_buy,
-                    'sell': best_sell
+                    'spread': cache['spread'],
+                    'buy': bid,
+                    'sell': ask
                 })
                 if len(cache['history']) > 60:
                     cache['history'].pop(0)
-            print(f"[{time.strftime('%H:%M:%S')}] Buy:{cache['best_buy']} Sell:{cache['best_sell']} Spread:{cache['spread']}")
+                print(f"[{time.strftime('%H:%M:%S')}] Buy:{bid} Sell:{ask} Spread:{cache['spread']}")
+            else:
+                print("No data received")
         except Exception as e:
             print(f"Cache error: {e}")
         time.sleep(60)
 
 @app.route('/api/prices')
 def get_prices():
-    def fmt(item):
-        adv = item['adv']
-        m = item['advertiser']
-        return {
-            'price': float(adv['price']),
-            'minAmount': float(adv['minSingleTransAmount']),
-            'maxAmount': float(adv['maxSingleTransAmount']),
-            'merchant': m.get('nickName', 'Unknown'),
-            'monthOrderCount': m.get('monthOrderCount', 0),
-            'monthFinishRate': m.get('monthFinishRate', 0),
-        }
     return jsonify({
-        'buy': [fmt(a) for a in cache['buy']],
-        'sell': [fmt(a) for a in cache['sell']],
+        'buy': [],
+        'sell': [],
         'bestBuy': cache['best_buy'],
         'bestSell': cache['best_sell'],
         'spread': cache['spread'],
