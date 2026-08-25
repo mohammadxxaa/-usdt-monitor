@@ -15,11 +15,16 @@ cache = {
 }
 
 HEADERS = {
+    HEADERS = {
     'Content-Type': 'application/json',
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-    'Accept': '*/*', 'Accept-Language': 'en-US,en;q=0.9',
+    'User-Agent': 'Mozilla/5.0 (Linux; Android 12; SM-G991B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36',
+    'Accept': 'application/json',
+    'Accept-Language': 'ar-JO,ar;q=0.9,en;q=0.8',
+    'Accept-Encoding': 'gzip, deflate, br',
     'Origin': 'https://p2p.binance.com',
-    'Referer': 'https://p2p.binance.com/'
+    'Referer': 'https://p2p.binance.com/en/trade/all-payments/USDT?fiat=JOD',
+    'clienttype': 'web',
+    'lang': 'ar',
 }
 
 def fetch_p2p(trade_type, rows=10):
