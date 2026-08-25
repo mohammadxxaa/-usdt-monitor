@@ -14,7 +14,6 @@ cache = {
     'best_buy': 0, 'best_sell': 0, 'history': []
 }
 
-HEADERS = {
     HEADERS = {
     'Content-Type': 'application/json',
     'User-Agent': 'Mozilla/5.0 (Linux; Android 12; SM-G991B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36',
