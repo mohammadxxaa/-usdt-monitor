@@ -9,32 +9,47 @@ app = Flask(__name__, static_folder='static')
 CORS(app)
 
 cache = {
-    'buy': [], 'sell': [],
-    'last_update': 0, 'spread': 0,
-    'best_buy': 0, 'best_sell': 0, 'history': []
-}
-
-    HEADERS = {
-    'Content-Type': 'application/json',
-    'User-Agent': 'Mozilla/5.0 (Linux; Android 12; SM-G991B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36',
-    'Accept': 'application/json',
-    'Accept-Language': 'ar-JO,ar;q=0.9,en;q=0.8',
-    'Accept-Encoding': 'gzip, deflate, br',
-    'Origin': 'https://p2p.binance.com',
-    'Referer': 'https://p2p.binance.com/en/trade/all-payments/USDT?fiat=JOD',
-    'clienttype': 'web',
-    'lang': 'ar',
+    'buy': [],
+    'sell': [],
+    'last_update': 0,
+    'spread': 0,
+    'best_buy': 0,
+    'best_sell': 0,
+    'history': []
 }
 
 def fetch_p2p(trade_type, rows=10):
     url = 'https://p2p.binance.com/bapi/c2c/v2/friendly/c2c/adv/search'
-    payload = {"fiat":"JOD","page":1,"rows":rows,"tradeType":trade_type,"asset":"USDT","countries":[],"proMerchantAds":False,"shieldMerchantAds":False,"filterType":"all","periods":[],"additionalKycVerifyFilter":0,"publisherType":None,"payTypes":[],"classifies":["mass","profession"]}
+    headers = {
+        'Content-Type': 'application/json',
+        'User-Agent': 'Mozilla/5.0 (Linux; Android 12; SM-G991B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36',
+        'Accept': 'application/json',
+        'Accept-Language': 'ar-JO,ar;q=0.9,en;q=0.8',
+        'Origin': 'https://p2p.binance.com',
+        'Referer': 'https://p2p.binance.com/en/trade/all-payments/USDT?fiat=JOD',
+    }
+    payload = {
+        "fiat": "JOD",
+        "page": 1,
+        "rows": rows,
+        "tradeType": trade_type,
+        "asset": "USDT",
+        "countries": [],
+        "proMerchantAds": False,
+        "shieldMerchantAds": False,
+        "filterType": "all",
+        "periods": [],
+        "additionalKycVerifyFilter": 0,
+        "publisherType": None,
+        "payTypes": [],
+        "classifies": ["mass", "profession"]
+    }
     try:
-        res = requests.post(url, json=payload, headers=HEADERS, timeout=10)
+        res = requests.post(url, json=payload, headers=headers, timeout=15)
         if res.status_code == 200:
             return res.json().get('data', [])
     except Exception as e:
-        print(f"Error: {e}")
+        print(f"Error fetching {trade_type}: {e}")
     return []
 
 def update_cache():
@@ -52,12 +67,17 @@ def update_cache():
                 cache['best_buy'] = best_buy
                 cache['best_sell'] = best_sell
                 cache['spread'] = spread
-                cache['history'].append({'time': int(time.time()*1000), 'spread': spread, 'buy': best_buy, 'sell': best_sell})
+                cache['history'].append({
+                    'time': int(time.time() * 1000),
+                    'spread': spread,
+                    'buy': best_buy,
+                    'sell': best_sell
+                })
                 if len(cache['history']) > 60:
                     cache['history'].pop(0)
             print(f"[{time.strftime('%H:%M:%S')}] Buy:{cache['best_buy']} Sell:{cache['best_sell']} Spread:{cache['spread']}")
         except Exception as e:
-            print(f"Error: {e}")
+            print(f"Cache error: {e}")
         time.sleep(60)
 
 @app.route('/api/prices')
@@ -65,8 +85,23 @@ def get_prices():
     def fmt(item):
         adv = item['adv']
         m = item['advertiser']
-        return {'price': float(adv['price']), 'minAmount': float(adv['minSingleTransAmount']), 'maxAmount': float(adv['maxSingleTransAmount']), 'merchant': m.get('nickName','Unknown'), 'monthOrderCount': m.get('monthOrderCount',0), 'monthFinishRate': m.get('monthFinishRate',0)}
-    return jsonify({'buy': [fmt(a) for a in cache['buy']], 'sell': [fmt(a) for a in cache['sell']], 'bestBuy': cache['best_buy'], 'bestSell': cache['best_sell'], 'spread': cache['spread'], 'lastUpdate': cache['last_update'], 'history': cache['history'][-20:]})
+        return {
+            'price': float(adv['price']),
+            'minAmount': float(adv['minSingleTransAmount']),
+            'maxAmount': float(adv['maxSingleTransAmount']),
+            'merchant': m.get('nickName', 'Unknown'),
+            'monthOrderCount': m.get('monthOrderCount', 0),
+            'monthFinishRate': m.get('monthFinishRate', 0),
+        }
+    return jsonify({
+        'buy': [fmt(a) for a in cache['buy']],
+        'sell': [fmt(a) for a in cache['sell']],
+        'bestBuy': cache['best_buy'],
+        'bestSell': cache['best_sell'],
+        'spread': cache['spread'],
+        'lastUpdate': cache['last_update'],
+        'history': cache['history'][-20:]
+    })
 
 @app.route('/')
 def index():
